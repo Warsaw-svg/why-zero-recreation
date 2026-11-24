@@ -3,7 +3,7 @@
 A scroll-driven, real-time 3D recreation of <https://why.zero.university/>, built as a functional single-page WebGL
 experience (no pre-rendered videos or static images stand in for interactions).
 
-- **Live site:** _add the Vercel URL here after deploying_
+- **Live site:** <https://why-zero-recreation.vercel.app>
 - **Repository:** <https://github.com/Warsaw-svg/why-zero-recreation>
 
 Every part of the story was rebuilt from screen recordings of the reference site and compared with them frame by
