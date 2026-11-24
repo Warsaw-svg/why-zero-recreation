@@ -1,0 +1,173 @@
+:root { --fg: #0b2b27; --fg-soft: rgba(11,43,39,.55); --glass: rgba(255,255,255,.22); --glass-b: rgba(255,255,255,.55); --accent: #1fb8a2; --shadow: 0 8px 32px rgba(0,30,30,.18); --pill: rgba(255,255,255,.55); --tick: rgba(32,29,29,.6); --tick-soft: rgba(32,29,29,.32); }
+[data-theme="dark"] { --fg: #f2fff9; --fg-soft: rgba(242,255,249,.55); --glass: rgba(255,255,255,.08); --glass-b: rgba(255,255,255,.28); --shadow: 0 8px 32px rgba(0,0,0,.45); --pill: rgba(0,0,0,.4); --tick: rgba(255,255,255,.6); --tick-soft: rgba(255,255,255,.35); }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #0a1f1c; overscroll-behavior: none; touch-action: none; user-select: none; -webkit-user-select: none; font-family: "JetBrains Mono", monospace; }
+canvas#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+canvas#trail { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
+#ui { position: fixed; inset: 0; pointer-events: none; z-index: 10; color: var(--fg); transition: color .6s; }
+#ui > * { pointer-events: auto; }
+body.fine, body.fine * { cursor: none !important; }
+
+.glass { background: var(--glass); backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid var(--glass-b); box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.5); color: var(--fg); transition: background .6s, color .6s, border-color .6s, opacity .5s, transform .4s; }
+.btn { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; padding: 0; font: inherit; color: var(--fg); background: var(--glass); }
+.btn:hover { transform: scale(1.08); }
+.btn:active { transform: scale(.94); }
+
+#ruler { position: absolute; inset: 0; overflow: hidden; pointer-events: none !important;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent); mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent); }
+#rulerTrack { position: absolute; top: 0; left: 50%; height: 100%; will-change: transform; }
+.tick { position: absolute; top: 0; width: 1px; height: 9px; background: var(--tick-soft); }
+.tick.big { height: 18px; background: var(--tick); }
+.tlabel { position: absolute; top: 21px; font: 400 12px/15px "JetBrains Mono", monospace; color: var(--tick); transform: translateX(-50%); white-space: nowrap; }
+#needle { position: absolute; top: 0; left: 50%; width: 2px; height: 18px; background: var(--fg); transform: translateX(-50%); }
+#rulerWrap { position: fixed; top: 16px; left: 50%; width: min(300px, 70vw); height: 60px; transform: translateX(-50%); pointer-events: none !important; }
+#rulerWrap #needle { z-index: 2; }
+
+#xp { position: fixed; top: 17px; right: 21px; height: 40px; padding: 0 17px 0 13px; border-radius: 999px; background: var(--pill); backdrop-filter: blur(12px) saturate(1.3); -webkit-backdrop-filter: blur(12px) saturate(1.3);
+  box-shadow: 0 2px 14px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.35); display: flex; gap: 7px; align-items: center; font: 500 16px/1 Inter, system-ui, sans-serif; color: var(--fg); pointer-events: none !important; transition: box-shadow .5s, transform .4s, background .6s, color .6s, opacity .9s, translate .9s; }
+#xp .star { width: 19px; height: 19px; filter: drop-shadow(0 0 5px rgba(246,201,69,.55)); }
+#xp .xpl { opacity: .5; }
+#xp.glow { box-shadow: 0 0 32px 4px rgba(120,255,220,.7), 0 2px 14px rgba(0,0,0,.08); transform: scale(1.1); }
+#sound { position: fixed; top: 17px; left: 21px; width: 38px; height: 38px; border: 0; background: var(--pill); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 2px 14px rgba(0,0,0,.08); color: var(--fg); transition: opacity .9s, translate .9s, transform .3s, background .6s, color .6s; }
+#sound svg { width: 20px; height: 14px; }
+/* HUD hidden until the first zero is solved */
+#ui.pre #rulerWrap, #ui.pre #xp, #ui.pre #sound { opacity: 0; translate: 0 -10px; pointer-events: none !important; }
+#ui.pre #menuBtn { opacity: 0 !important; pointer-events: none !important; } /* no menu (no way forward) until the zero is drawn */
+#rulerWrap { transition: opacity .9s .15s, translate .9s .15s; }
+#menuBtn { position: fixed; bottom: calc(22px + env(safe-area-inset-bottom)); left: 50%; margin-left: -23px; z-index: 20; }
+#menuBtn i { display: block; width: 16px; height: 2px; background: currentColor; box-shadow: 0 5px 0 currentColor, 0 -5px 0 currentColor; border-radius: 2px; }
+
+#menu { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(8,30,28,.35); backdrop-filter: blur(26px) saturate(1.3); -webkit-backdrop-filter: blur(26px) saturate(1.3);
+  opacity: 0; pointer-events: none !important; transition: opacity .5s; z-index: 30; color: #f2fff9; }
+#menu.open { opacity: 1; pointer-events: auto !important; }
+#menu ul { list-style: none; margin: 0; padding: 0; text-align: center; }
+#menu li { font-family: "Playfair Display", serif; font-size: clamp(44px, 9vw, 104px); line-height: 1.12; padding: 6px 24px; opacity: 0; transform: translateY(24px); transition: opacity .6s, transform .6s, letter-spacing .4s; }
+#menu.open li { opacity: .85; transform: none; }
+#menu.open li:nth-child(2) { transition-delay: .07s } #menu.open li:nth-child(3) { transition-delay: .14s }
+#menu li:hover { opacity: 1; letter-spacing: .02em; font-style: italic; }
+#menuClose { position: absolute; top: 18px; right: 18px; color: #f2fff9; font-size: 20px; }
+
+#cursor { position: fixed; left: 0; top: 0; width: 0; height: 0; z-index: 100; pointer-events: none !important; }
+#cursor .c { position: absolute; left: -17px; top: -17px; width: 34px; height: 34px; transition: transform .25s, opacity .25s; }
+#cursor .hand { opacity: 1; filter: drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
+#cursor .dot { display: none; } /* the reference always shows the open-hand cursor, never a crosshair */
+#cursor.down .hand { transform: scale(.88); }
+#cursor.ui .hand { transform: scale(1.12); }
+
+#ring { color: #fff; position: fixed; width: 280px; height: 280px; margin: -140px 0 0 -140px; pointer-events: none !important; opacity: 0; transition: opacity .5s; z-index: 8; }
+#ring.on { opacity: 1; }
+#ring canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+#ring .lab { position: absolute; inset: 0; display: grid; place-items: center; font: 500 clamp(17px, 3vh, 25px)/1 "JetBrains Mono", monospace; letter-spacing: .07em; color: rgba(255,255,255,.94); white-space: nowrap; text-shadow: 0 1px 8px rgba(0,0,0,.25); }
+[data-theme="light"] #ring { color: #0a6a5e; }
+#ring.tap { z-index: 11; }   /* above the red/black hold shade (#holdShade, z 9) so TAP / HOLD stays crisp */
+#ring.tap .lab { inset: auto; left: 61%; top: 50%; transform: translateY(-50%); display: block; font: 700 clamp(16px, 2.8vh, 22px)/1.08 "JetBrains Mono", monospace; letter-spacing: .05em; white-space: pre; text-align: left; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.7), 0 0 8px rgba(0,0,0,.55), 0 0 18px rgba(0,0,0,.35); }   /* legible on the bright horizon and on red/black */
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+
+#preloader { position: fixed; inset: 0; background: radial-gradient(ellipse 85% 70% at 50% 118%, #d3f4e6 0%, #86c9ae 24%, #3f9a80 50%, #276a55 78%, #1d5a48 100%); color: #fff; z-index: 200; transition: opacity 1s, background .6s; pointer-events: none; }
+#preloader.seethrough { background: transparent; }
+#preloader.done { opacity: 0; pointer-events: none; }
+.pl-pct { position: absolute; left: 26px; bottom: 14px; font: 700 104px/1 Fredoka, Inter, sans-serif; letter-spacing: -.01em; }
+
+#cityUI { position: fixed; inset: 0; pointer-events: none !important; opacity: 0; transition: opacity 1s; z-index: 9; }
+#cityUI.on { opacity: 1; }
+#cityUI > * { pointer-events: auto; }
+#joy { position: absolute; left: 24px; bottom: calc(28px + env(safe-area-inset-bottom)); width: 112px; height: 112px; border-radius: 50%; touch-action: none; }
+#joy .knob { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px; border-radius: 50%; background: rgba(255,255,255,.7); box-shadow: 0 4px 14px rgba(0,0,0,.25), inset 0 1px 0 #fff; }
+#camBtns { position: absolute; right: 20px; bottom: calc(28px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(2, 46px); gap: 10px; }
+#cityTip { position: absolute; left: 0; top: 0; padding: 8px 12px; border-radius: 10px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; pointer-events: none !important; opacity: 0; transition: opacity .25s; white-space: nowrap; }
+#cityHelp { position: absolute; left: 50%; top: 76px; animation: fadeHelp 1s 8s forwards; transform: translateX(-50%); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--fg-soft); pointer-events: none !important; text-align: center; }
+@media (max-width: 600px) { #ruler, #rulerWrap { width: min(46vw, calc(100vw - 256px)); } #xp { padding: 8px 12px; font-size: 11px; } }   /* the ruler fits between the sound button and the XP pill */
+
+@keyframes fadeHelp { to { opacity: 0; } }
+
+/* ---- real-map office cards ---- */
+#mapList { position: absolute; left: 50%; bottom: calc(30px + env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: calc(100vw - 340px); }
+.chip { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border-radius: 19px; font: 600 13px/1 Fredoka, system-ui, sans-serif; color: var(--fg); cursor: pointer; border: 0; transition: transform .2s, box-shadow .2s; }
+.chip i { width: 9px; height: 9px; border-radius: 50%; display: block; }
+.chip:hover { transform: translateY(-2px); }
+.chip.on { box-shadow: 0 0 0 2px var(--fg) inset; }
+#mapCard { position: absolute; right: 24px; top: 84px; width: min(340px, calc(100vw - 48px)); padding: 20px 20px 18px; border-radius: 20px; color: var(--fg); opacity: 0; transform: translateY(12px) scale(.97); pointer-events: none !important; transition: opacity .35s, transform .35s; --accent: #2fd6a0; }
+#mapCard.show { opacity: 1; transform: none; pointer-events: auto !important; }
+#mapCard .hd { position: relative; height: 128px; margin: -20px -20px 14px; border-radius: 20px 20px 0 0; overflow: hidden; background: radial-gradient(circle at 70% 30%, color-mix(in srgb, var(--accent) 55%, #fff), var(--accent) 70%, color-mix(in srgb, var(--accent) 60%, #000)); }
+#mapCard .hd svg { position: absolute; right: 24px; bottom: -4px; width: 110px; fill: rgba(255,255,255,.55); }
+#mapCard .badge { position: absolute; left: 14px; top: 14px; display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px 7px 10px; border-radius: 18px; background: #fff; color: #10201d; font: 700 14px/1 Fredoka, system-ui, sans-serif; }
+#mapCard .badge i { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+#mapCard .role { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; opacity: .6; text-align: center; }
+#mapCard h3 { margin: 6px 0 8px; font: 600 22px/1.2 Newsreader, 'Playfair Display', serif; text-align: center; }
+#mapCard .about { text-align: center; font-size: 12.5px; line-height: 1.5; margin: 0 0 12px; opacity: .85; }
+#mapCard .known { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-bottom: 14px; }
+#mapCard .known span { font-size: 11px; padding: 4px 9px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 16%, transparent); }
+#mapCard .meta { display: flex; flex-direction: column; gap: 2px; font-size: 10.5px; opacity: .6; text-align: center; margin-bottom: 12px; }
+#mapCard .nav { display: flex; align-items: center; justify-content: center; gap: 14px; font-size: 11px; }
+#mapCard .nav button { width: 30px; height: 30px; border-radius: 50%; border: 0; cursor: pointer; background: color-mix(in srgb, var(--accent) 24%, transparent); color: inherit; }
+#mapCard .x { position: absolute; right: 12px; top: 12px; width: 28px; height: 28px; border-radius: 50%; border: 0; background: rgba(0,0,0,.08); color: inherit; cursor: pointer; }
+#mapAttr { position: absolute; right: 8px; bottom: 4px; font-size: 9px; opacity: .6; color: var(--fg); pointer-events: none !important; }
+@media (max-width: 720px) {
+  #mapList { max-width: calc(100vw - 32px); bottom: calc(150px + env(safe-area-inset-bottom)); }
+  #mapCard { right: 50%; transform: translate(50%, 12px); top: auto; bottom: calc(196px + env(safe-area-inset-bottom)); }
+  #mapCard.show { transform: translate(50%, 0); }
+}
+
+/* loader glitch: the countdown tears apart on its way to the word "zero" */
+.pl-pct.glitch { animation: plGlitch .14s steps(2, end) infinite; text-shadow: 4px 0 rgba(255,255,255,.55), -4px 0 rgba(180,255,230,.5); }
+@keyframes plGlitch { 0% { transform: translate(0,0); clip-path: inset(0 0 55% 0); } 25% { transform: translate(-6px,2px); clip-path: inset(40% 0 20% 0); } 50% { transform: translate(5px,-2px); clip-path: inset(10% 0 60% 0); } 75% { transform: translate(-3px,0); clip-path: inset(60% 0 0 0); } 100% { transform: none; clip-path: none; } }
+
+/* loader -> scene hand-off: the DOM word vanishes as the identical in-ice word appears */
+#preloader.handoff { opacity: 0; transition: opacity .12s; }
+.pl-pct.word { font-size: 24vh; left: .5vw; bottom: -2vh; line-height: 1; }
+
+#solveWhite { position: fixed; inset: 0; background: #fff; z-index: 9; pointer-events: none; }
+/* solve: gold star + "+100 XP" on the white bloom */
+#solveStar { position: fixed; left: 50%; top: 50%; width: 0; height: 0; z-index: 40; pointer-events: none; perspective: 600px; }
+#solveStar .st { position: absolute; left: -14px; top: -14px; width: 28px; height: 28px; filter: drop-shadow(0 0 8px rgba(246,201,69,.85)) drop-shadow(0 0 22px rgba(255,230,120,.6)); }
+#solveStar .halo { position: absolute; left: -70px; top: -70px; width: 140px; height: 140px; border-radius: 50%; background: radial-gradient(circle, rgba(255,240,170,.55) 0%, rgba(255,240,170,.15) 40%, rgba(255,255,255,0) 70%); }
+#solveStar .xp { position: absolute; left: -80px; top: 26px; width: 160px; text-align: center; font: 500 15px/1 Inter, system-ui, sans-serif; letter-spacing: .02em; color: rgba(130,170,160,.95); white-space: nowrap; }
+
+/* Component 2 → 3: red tint then black over the meadow while holding; the shatter canvas on top */
+#holdShade { position: fixed; inset: 0; z-index: 9; pointer-events: none; display: none; mix-blend-mode: multiply; }   /* multiply onto the scene: deep red, then black */
+#holdShade .red { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, rgb(170,14,22) 0%, rgb(95,0,10) 60%, rgb(35,0,4) 100%); opacity: 0; }
+#holdShade .black { position: absolute; inset: 0; background: #000; opacity: 0; }
+#shatter { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 9; pointer-events: none; }
+
+/* resume after refresh: "zero" small in the bottom-left, then slides out (coponent3.mov) */
+.pl-pct.word.resume { font-size: 9vh; left: 1.2vw; bottom: 1.5vh; z-index: 30; }
+
+/* Component 5b (reference Screen Recording 9.55.37): white project card with a photo header, email Join Beta bar */
+#mapList, #cityHelp { display: none !important; }
+#cityUI { cursor: grab; }
+#mapCard { background: #fff; color: #141414; padding: 0 0 16px; border-radius: 22px; box-shadow: 0 18px 50px rgba(0,0,0,.28); border: 6px solid #fff; width: min(300px, calc(100vw - 48px)); }
+#mapCard .ph { height: 150px; border-radius: 16px; background-size: cover; background-position: center; position: relative; margin-bottom: 12px; }
+#mapCard .ph .badge { position: absolute; left: 10px; top: 10px; font: 600 12px/1 system-ui, sans-serif; padding: 6px 11px 6px 8px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+#mapCard .role { font: 500 9.5px/1 "JetBrains Mono", monospace; letter-spacing: .14em; color: #777; opacity: 1; }
+#mapCard h3 { font: 600 17px/1.25 system-ui, -apple-system, sans-serif; margin: 8px 14px 8px; color: #111; }
+#mapCard .about { font: 11px/1.5 system-ui, -apple-system, sans-serif; color: #555; margin: 0 16px 12px; opacity: 1; }
+#mapCard .known { margin: 0 12px 14px; gap: 6px 12px; }
+#mapCard .known span { background: none; padding: 0; font: 10.5px system-ui, sans-serif; color: #333; display: inline-flex; align-items: center; gap: 5px; }
+#mapCard .known span i { width: 9px; height: 9px; border-radius: 3px; background: var(--accent); opacity: .85; }
+#mapCard .join { display: block; width: calc(100% - 20px); margin: 0 10px; height: 40px; border: 0; border-radius: 20px; background: #111; color: #fff; font: 600 14px/1 system-ui, sans-serif; cursor: pointer; }
+#mapCard .join:hover { background: #2a2a2a; }
+#mapCard .x { right: 16px; top: 16px; background: rgba(255,255,255,.85); color: #111; z-index: 2; }
+#cityJoin { position: absolute; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom));   /* sits above the ≡ menu button (bottom 22px, 46px tall) */ transform: translate(-50%, 20px); display: flex; gap: 6px; padding: 5px; border-radius: 26px; background: rgba(255,255,255,.92); box-shadow: 0 8px 28px rgba(0,0,0,.2); opacity: 0; pointer-events: none !important; transition: opacity .5s, transform .5s; }
+#cityUI.joinOn #cityJoin { opacity: 1; transform: translate(-50%, 0); pointer-events: auto !important; }
+#cityJoin input { width: min(230px, 46vw); border: 0; outline: 0; background: transparent; padding: 0 14px; font: 13px system-ui, sans-serif; color: #111; }
+#cityJoin button { height: 38px; padding: 0 18px; border: 0; border-radius: 20px; background: #111; color: #fff; font: 600 13px/1 system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
+#cityJoin.pulse { box-shadow: 0 0 0 4px rgba(93,255,138,.6), 0 8px 28px rgba(0,0,0,.2); }
+#cityJoin.done button { background: #1f9d55; }
+@media (max-width: 640px) { #cityJoin { bottom: calc(150px + env(safe-area-inset-bottom)); } }
+/* "Coming soon" page (menu items) and toasts */
+#soon { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(250,250,247,.96); color: #10201d; opacity: 0; pointer-events: none !important; transition: opacity .4s; }
+#soon.open { opacity: 1; pointer-events: auto !important; }
+#soon .in { text-align: center; padding: 24px; }
+#soon .k { font: 500 11px/1 "JetBrains Mono", monospace; letter-spacing: .2em; text-transform: uppercase; opacity: .55; margin-bottom: 18px; }
+#soon h2 { font: 400 clamp(48px, 9vw, 110px)/1 "Playfair Display", serif; margin: 0 0 16px; }
+#soon p { margin: 0; font: 15px/1.5 system-ui, sans-serif; opacity: .65; }
+#soonBack { position: absolute; right: 22px; top: 22px; }
+#toasts { position: fixed; left: 50%; top: 70px; transform: translateX(-50%); z-index: 50; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none !important; }
+.toast { display: flex; align-items: center; gap: 10px; padding: 11px 16px 11px 12px; border-radius: 14px; background: #fff; color: #141414; font: 500 13.5px/1.3 system-ui, sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,.18); opacity: 0; transform: translateY(-10px); transition: opacity .3s, transform .3s; max-width: min(380px, calc(100vw - 32px)); }
+.toast.show { opacity: 1; transform: none; }
+.toast i { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 700 12px/1 system-ui, sans-serif; font-style: normal; color: #fff; }
+.toast.ok i { background: #1f9d55; } .toast.err i { background: #d93025; }
+#cityJoin.bad { box-shadow: 0 0 0 3px rgba(217,48,37,.55), 0 8px 28px rgba(0,0,0,.2); }
+/* phones / portrait: the loader's big "zero" word must fit the width */
+@media (max-aspect-ratio: 1/1) { .pl-pct.word:not(.resume) { font-size: min(24vh, 30vw); } }

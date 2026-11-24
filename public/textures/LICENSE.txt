@@ -1,0 +1,2 @@
+Textures from Poly Haven (https://polyhaven.com), released under CC0 (public domain) — no attribution required.
+concrete_wall_008, concrete_tile_facade, concrete_floor_worn_02, asphalt_02 — 1K diffuse + OpenGL normal maps.

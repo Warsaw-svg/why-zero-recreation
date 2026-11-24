@@ -1,0 +1,25 @@
+{
+  "name": "why-zero-recreation",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "postinstall": "node scripts/copy-libs.mjs"
+  },
+  "dependencies": {
+    "gsap": "^3.15.1",
+    "howler": "^2.2.4",
+    "n8ao": "^1.10.3",
+    "postprocessing": "^6.39.6",
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@types/howler": "^2.2.13",
+    "@types/three": "^0.187.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  }
+}

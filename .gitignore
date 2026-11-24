@@ -1,0 +1,10 @@
+node_modules
+dist
+.DS_Store
+snapshots/
+recording/
+.claude/
+*.log
+.vercel
+CHANGES.md
+handlab.html
